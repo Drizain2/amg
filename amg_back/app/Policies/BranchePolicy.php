@@ -9,33 +9,47 @@ use Illuminate\Auth\Access\Response;
 class BranchePolicy
 {
     /**
-     * Determine whether the user can view any models.
+     * L'admin peut tout faire sur les branches de sa compagnie.
+     * Cette méthode "before" court-circuite toutes les autres si elle retourne true.
+     */
+    public function before(User $user, string $ability): ?bool
+    {
+        if($user->isAdmin()) {
+            return true; // L'admin a tous les droits sur les branches de sa compagnie
+        }
+        return null; // Continuer à vérifier les autres méthodes pour manager et operator
+    }
+
+    /**
+     * Lister les branches.
+     * Manager et operator voient uniquement leurs branches assignées.
      */
     public function viewAny(User $user): bool
     {
-        return false;
+// Tout le monde peut lister (filtré dans le controller)
+        return true;
     }
 
-    /**
-     * Determine whether the user can view the model.
+        /**
+     * Voir / utiliser une branche spécifique.
      */
     public function view(User $user, Branche $branche): bool
     {
-        // dd($user,$branche);
-        //On ne peut voir ou utiliser une branche que si elle a le meme compagnie-id
-        return $user->compagnie_id === $branche->compagnie_id;
+
+        return $user->canAccessBranche($branche->id);
     }
 
     /**
-     * Determine whether the user can create models.
+     * Créer une branche : réservé à l'admin (géré par before()).
      */
     public function create(User $user): bool
     {
+        // Non-admins bloqués ici, admins passent par before()
         return false;
     }
 
     /**
-     * Determine whether the user can update the model.
+     * Modifier une branche : réservé à l'admin (géré par before()).
      */
     public function update(User $user, Branche $branche): bool
     {
@@ -43,7 +57,7 @@ class BranchePolicy
     }
 
     /**
-     * Determine whether the user can delete the model.
+     * Supprimer une branche : réservé à l'admin (géré par before()).
      */
     public function delete(User $user, Branche $branche): bool
     {

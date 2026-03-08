@@ -24,17 +24,20 @@ class AuthController extends Controller
 
         return DB::transaction(function () use ($request, &$user) {
 
-            // Créer l'entreprise
+            // 1. Créer l'entreprise
             $compagnie = Compagnie::create([
                 "name" => $request->compagnie_name,
                 "slug" => Str::slug($request->compagnie_name)
             ]);
-            // Création de la branche par defaut
+            // 2. Créer la branche principale
             $branch = Branche::create([
                 "compagnie_id" => $compagnie->id,
                 "name" => "Dépot Principal",
                 "location" => "Siège social"
             ]);
+
+            // 3. Créer l'utilisateur avec le rôle admin
+            // Le fondateur de la compagnie est toujours admin
             // Crééation de l'utilisateur
             $user = User::create([
                 "name" => $request->name,
@@ -42,11 +45,16 @@ class AuthController extends Controller
                 "email" => $request->email,
                 "compagnie_id" => $compagnie->id,
                 "password" => $request->password,
-                "branche_id"=>$branch->id
+                "role" => "admin"
             ]);
+            // 4. Attacher l'admin à la branche principale via la pivot
+            // Même si l'admin voit tout via compagnie_id,
+            // on l'attache pour garder une trace de son dépôt "home"
+            $user->branches()->attach($branch->id);
+
             return response()->json([
                 'token' => $user->createToken('auth:token')->plainTextToken,
-                'user' => $user,
+                'user' => $user->load('branches'),
                 "branche"=> $branch
             ]);
         });
@@ -65,7 +73,7 @@ class AuthController extends Controller
         $token = $user->createToken('api-token')->plainTextToken;
         return response()->json([
             'message' => 'Login succesful',
-            'user' => $user,
+            'user' => $user->load(['branches','compagnie']),
             'token' => $token
         ], 200);
     }

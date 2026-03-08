@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->foreignId("compagnie_id")->nullable()->cascadeOnDelete();
-            $table->foreignId("branche_id")->nullable()->cascadeOnDelete();
+            $table->enum('role',['admin','manager',"operator"])->default('operator');
             $table->string('name');
             $table->string('last_name');
             $table->string('email')->unique();
