@@ -6,7 +6,6 @@ use App\Http\Requests\StoreBrancheRequest;
 use App\Http\Requests\UpdateBrancheRequest;
 use App\Http\Resources\BrancheResource;
 use App\Models\Branche;
-use Illuminate\Http\Request;
 
 class BrancheController extends Controller
 {
@@ -23,7 +22,9 @@ class BrancheController extends Controller
 
         //Admin
         if ($user->isAdmin()) {
-            $branches = Branche::withCount('stocks')->get();
+           $branches = Branche::where('compagnie_id', $user->compagnie_id)
+                               ->withCount('stocks')
+                               ->get();
         } else {
             // Manager et Operator
             $branches = $user->branches()->withCount('stocks')->get();
@@ -37,10 +38,7 @@ class BrancheController extends Controller
      */
     public function store(StoreBrancheRequest $request)
     {
-        $branche = Branche::create([
-            'name' => $request->name,
-            'address' => $request->address,
-        ]);
+        $branche = Branche::create($request->validated());
 
         return new BrancheResource($branche);
     }
@@ -82,7 +80,8 @@ class BrancheController extends Controller
     {
         $this->authorize('delete', $branche);
 
-        $totalBranches = Branche::count();
+                $totalBranches = Branche::where('compagnie_id', auth()->user()->compagnie_id)->count();
+
         if ($totalBranches <= 1) {
             return response()->json([
                 'message' => 'Impossible de supprimer la dernière branche de la compagnie.'

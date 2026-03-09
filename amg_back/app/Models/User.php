@@ -3,7 +3,10 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use App\Models\Traits\BelongsToCompagnie;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -11,7 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasFactory, Notifiable, HasApiTokens, SoftDeletes, BelongsToCompagnie;
 
     /**
      * The attributes that are mass assignable.
@@ -92,7 +95,8 @@ class User extends Authenticatable
     public function accessibleBrancheIds()
     {
         if ($this->isAdmin()) {
-            return Branche::where('compagnie_id', $this->compagnie_id)
+            return Branche::withoutGlobalScopes()
+                ->where('compagnie_id', $this->compagnie_id)
                 ->pluck('id')
                 ->toArray();
         }
@@ -106,8 +110,8 @@ class User extends Authenticatable
     public function canAccessBranche(int $brancheId): bool
     {
         if ($this->isAdmin()) {
-            // L'admin peut accéder à toute branche de sa compagnie
-            return Branche::where('id', $brancheId)
+            return Branche::withoutGlobalScopes()
+                ->where('id', $brancheId)
                 ->where('compagnie_id', $this->compagnie_id)
                 ->exists();
         }

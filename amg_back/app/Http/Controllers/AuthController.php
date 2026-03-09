@@ -55,7 +55,6 @@ class AuthController extends Controller
             return response()->json([
                 'token' => $user->createToken('auth:token')->plainTextToken,
                 'user' => $user->load('branches'),
-                "branche"=> $branch
             ]);
         });
 
@@ -73,7 +72,7 @@ class AuthController extends Controller
         $token = $user->createToken('api-token')->plainTextToken;
         return response()->json([
             'message' => 'Login succesful',
-            'user' => $user->load(['branches','compagnie']),
+            'user' => $user->load(['branches', 'compagnie']),
             'token' => $token
         ], 200);
     }

@@ -3,6 +3,8 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BrancheController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\StockMovementController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,11 +29,21 @@ Route::middleware('auth:sanctum')->group(function () {
     // GET    /api/user-compagnie/{id}    → détail d'un user
     // PUT    /api/user-compagnie/{id}    → modifier rôle et/ou branches
     // DELETE /api/user-compagnie/{id}    → retirer un user
-    // Route::apiResource('user-compagnie', UserCon::class);
+    Route::apiResource('user-compagnie', UserController::class);
 
 
     // Produits
     Route::apiResource('product', ProductController::class);
+
+    // Mouvements de stock
+    // GET  /api/mouvement              → historique filtré par rôle (avec ?stock_id=, ?type=, ?branche_id=)
+    // POST /api/mouvement              → créer in / out / adjustment
+    // GET  /api/mouvement/{id}         → détail d'un mouvement
+    // POST /api/mouvement/transfert    → transfert inter-branches
+    Route::get('mouvement',                [StockMovementController::class, 'index']);
+    Route::post('mouvement',               [StockMovementController::class, 'store']);
+    Route::post('mouvement/transfert',     [StockMovementController::class, 'transfert']);
+    Route::get('mouvement/{stockMovement}',[StockMovementController::class, 'show']);
 
 
 });

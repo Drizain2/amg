@@ -259,3 +259,122 @@ Compagnie
 ### Prochaine étape
 - [ ] **StockMovementController** : entrées/sorties de stock avec vérification du périmètre branche selon le rôle
 - [ ] **Transfert inter-branches** : logique `type=transfert` dans l'observer
+
+---
+
+## 🔄 Mise à jour — 2026-03-08 (Trait BelongsToCompagnie)
+
+### Logique ajoutée
+
+**Trait `BelongsToCompagnie`** (`app/Models/Traits/BelongsToCompagnie.php`)
+- Regroupe le `CompagnieScope` (filtre lecture) + hook `creating` (injection `compagnie_id`) dans un trait réutilisable
+- Laravel appelle automatiquement `bootBelongsToCompagnie()` — pas de `booted()` à écrire dans chaque modèle
+- `empty($model->compagnie_id)` protège contre l'écrasement d'un `compagnie_id` posé explicitement (ex: `register`)
+- Applicable sur tout modèle ayant une colonne `compagnie_id` : `Product`, `Branche`
+- **Non applicable** sur `Stock` et `StockMovement` (pas de `compagnie_id` direct — isolation via relations)
+- **Avec précaution** sur `User` (le `CompagnieScope` pourrait bloquer des requêtes sans auth)
+
+### Impact sur les controllers
+- `BrancheController@store` simplifié : `Branche::create($request->validated())` suffit — plus besoin de passer `compagnie_id` manuellement
+
+### Fichiers créés / modifiés
+| Fichier | Action |
+|---------|--------|
+| `app/Models/Traits/BelongsToCompagnie.php` | ✅ Créé |
+| `app/Models/Product.php` | ✅ Mis à jour (use BelongsToCompagnie, booted() supprimé) |
+| `app/Models/Branche.php` | ✅ Mis à jour (use BelongsToCompagnie) |
+| `app/Http/Controllers/BrancheController.php` | ✅ Simplifié (store) |
+
+---
+
+## 🔄 Mise à jour — 2026-03-08 (StockMovementController)
+
+### Logiques ajoutées
+
+**Mouvements de stock (in / out / adjustment / transfert)**
+- `GET  /api/mouvement` → historique filtré par périmètre du rôle, avec filtres optionnels `?stock_id`, `?type`, `?branche_id`
+- `POST /api/mouvement` → créer un mouvement in/out/adjustment — vérifie l'accès à la branche + stock suffisant pour "out"
+- `GET  /api/mouvement/{id}` → détail d'un mouvement — accès refusé si branche hors périmètre
+- `POST /api/mouvement/transfert` → transfert inter-branches en transaction atomique (2 mouvements : OUT source + IN destination)
+
+**Règles de sécurité sur les mouvements**
+- Vérification `canAccessBranche()` sur chaque mouvement — aucun user ne peut agir sur une branche hors de son périmètre
+- Transfert : vérifie que les deux branches sont dans la même compagnie + que le user a accès aux deux
+- Transfert : vérifie que les deux stocks concernent le même produit
+
+**Observer revu**
+- Type `transfert` → skippé par l'observer (les stocks sont mis à jour manuellement dans la transaction pour garder le contrôle total)
+- Types `in` / `adjustment` → increment via observer
+- Type `out` → decrement via observer
+
+**Bugs corrigés**
+- `ProductController` : `initial_quantity` correctement lu (était `quantity`)
+- `ProductController` : `StockMovement::generateReference()` remplace `date("YYYY/MM/DD")`
+- `StockMovement` : `$fillable` complété avec `stock_id`, `user_id`
+- `StockMovementController` : import `Stock` manquant corrigé, nommage `compagnie_id`/`branche_id` harmonisé
+
+### Fichiers créés / modifiés
+| Fichier | Action |
+|---------|--------|
+| `app/Models/StockMovement.php` | ✅ Corrigé (fillable, generateReference) |
+| `app/Observers/StockMovementObserver.php` | ✅ Revu (transfert skippé, match expression) |
+| `app/Http/Requests/StoreMovementRequest.php` | ✅ Créé |
+| `app/Http/Requests/StoreTransfertRequest.php` | ✅ Créé |
+| `app/Http/Resources/StockMovementResource.php` | ✅ Créé |
+| `app/Http/Controllers/StockMovementController.php` | ✅ Créé (complet) |
+| `app/Http/Controllers/ProductController.php` | ✅ Corrigé + complété (show, update, destroy) |
+| `routes/api.php` | ✅ Mis à jour (mouvement + transfert) |
+
+### État des fonctionnalités "compagnie/branche/rôles"
+- [x] Auth + onboarding (register/login)
+- [x] Isolation multi-tenant (BelongsToCompagnie trait)
+- [x] Système de rôles (admin/manager/operator) + pivot branche_user
+- [x] CRUD Branches
+- [x] Gestion des utilisateurs (inviter, modifier, retirer)
+- [x] Mouvements de stock (in/out/adjustment/transfert)
+- [x] Historique filtré par périmètre de rôle
+
+### Prochaine étape possible
+- [ ] **ProductController** : Form Requests dédiés (StoreProductRequest, UpdateProductRequest)
+- [ ] **Alertes stock bas** : seuil configurable par produit/branche
+- [ ] **CompagnieController** : permettre à l'admin de modifier les infos de sa compagnie
+
+
+## 🔄 Mise à jour — 2026-03-08 (Seeders)
+
+### Données de test générées
+
+**3 compagnies** : AMG Global, Dadoudi & Frères, TechDistrib CI
+
+**6 branches** :
+- AMG Global → 3 branches (Dépôt Principal, Cocody, Yopougon)
+- Dadoudi & Frères → 2 branches (Siège, Abobo)
+- TechDistrib CI → 1 branche (Entrepôt)
+
+**9 utilisateurs** (3 par compagnie) — mot de passe : `password`
+| Rôle | Email pattern |
+|------|--------------|
+| admin | admin@{slug}.ci |
+| manager | manager@{slug}.ci |
+| operator | operateur@{slug}.ci |
+
+**36 produits** (12 par compagnie) — sélection aléatoire depuis un catalogue de 22 produits électroniques
+
+**Stocks + mouvements** : chaque produit × chaque branche → 1 stock + 1 mouvement `in` initial
+
+**Mouvements de test supplémentaires sur AMG Global** :
+- 6 sorties `out` (simule des ventes)
+- 1 ajustement `adjustment` (inventaire)
+- 1 transfert `transfert` entre branche 1 et branche 2
+
+### Points techniques
+- `withoutGlobalScopes()` utilisé dans tous les seeders pour bypasser le `CompagnieScope` (pas d'auth pendant le seed)
+- `compagnie_id` passé explicitement dans `ProductSeeder` (hook `creating` inactif sans auth)
+- SKU suffixé par l'id compagnie (`SKU-C1`, `SKU-C2`) pour garantir l'unicité globale
+- L'observer `StockMovementObserver` est actif pendant le seed → les stocks sont mis à jour automatiquement via les mouvements `in`
+- Le transfert de test bypasse l'observer (type `transfert` skippé) et met à jour les stocks manuellement
+
+### Commande
+```bash
+php artisan migrate:fresh --seed
+```

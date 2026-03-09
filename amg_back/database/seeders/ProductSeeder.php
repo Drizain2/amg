@@ -4,316 +4,71 @@ namespace Database\Seeders;
 
 use App\Models\Compagnie;
 use App\Models\Product;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+    // Catalogue commun — chaque compagnie aura un sous-ensemble
+    private array $catalogue = [
+        // Ordinateurs
+        ['name' => 'Dell Latitude E7470',       'sku' => 'DELL-E7470',      'price' => 280000],
+        ['name' => 'HP ProBook 450 G8',          'sku' => 'HP-PB450G8',      'price' => 350000],
+        ['name' => 'Lenovo ThinkPad T14',        'sku' => 'LEN-T14',         'price' => 320000],
+        ['name' => 'MacBook Air M2',             'sku' => 'APPLE-MBA-M2',    'price' => 850000],
+
+        // Smartphones
+        ['name' => 'iPhone 15 128GB',            'sku' => 'IPH15-128',       'price' => 550000],
+        ['name' => 'Samsung Galaxy A54',         'sku' => 'SAM-A54',         'price' => 180000],
+        ['name' => 'Tecno Spark 20',             'sku' => 'TEC-SP20',        'price' => 75000],
+        ['name' => 'Infinix Hot 40',             'sku' => 'INF-HOT40',       'price' => 65000],
+
+        // Accessoires
+        ['name' => 'Souris Logitech M185',       'sku' => 'LOG-M185',        'price' => 8000],
+        ['name' => 'Clavier Logitech K120',      'sku' => 'LOG-K120',        'price' => 12000],
+        ['name' => 'Écran HP 22" FHD',           'sku' => 'HP-MON22',        'price' => 95000],
+        ['name' => 'Câble HDMI 2m',              'sku' => 'HDMI-2M',         'price' => 3500],
+        ['name' => 'Chargeur USB-C 65W',         'sku' => 'CHG-USBC-65W',    'price' => 15000],
+        ['name' => 'Sac à dos PC 15"',           'sku' => 'SAC-PC-15',       'price' => 18000],
+
+        // Réseau
+        ['name' => 'Routeur TP-Link AX1800',     'sku' => 'TPL-AX1800',      'price' => 55000],
+        ['name' => 'Switch 8 ports Gigabit',     'sku' => 'SWI-8P-GIG',      'price' => 22000],
+        ['name' => 'Câble RJ45 Cat6 - 10m',      'sku' => 'RJ45-CAT6-10M',   'price' => 4500],
+
+        // Imprimantes
+        ['name' => 'Imprimante HP LaserJet 107a','sku' => 'HP-LJ107A',       'price' => 85000],
+        ['name' => 'Cartouche HP 85A',           'sku' => 'HP-CART85A',      'price' => 25000],
+
+        // Stockage
+        ['name' => 'Disque dur externe 1TB',     'sku' => 'HDD-EXT-1TB',     'price' => 35000],
+        ['name' => 'Clé USB 64GB Kingston',      'sku' => 'USB-64G-KIN',     'price' => 6000],
+        ['name' => 'SSD Samsung 500GB',          'sku' => 'SSD-SAM-500G',    'price' => 48000],
+    ];
+
     public function run(): void
     {
         $this->command->info('📦 Création des produits...');
 
-        $companies = Compagnie::all();
+        $compagnies = Compagnie::all();
 
-        $productsData = [
-            // Ordinateurs Portables
-            [
-                'name' => 'Dell Latitude E6440',
-                'sku' => 'DELL-E6440',
-                // 'description' => 'PC portable professionnel Intel Core i5',
-                'price' => 180000,
-                // 'selling_price' => 250000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 5,
-                // 'unit' => 'PIECE',
-                // 'category' => 'laptops',
-            ],
-            [
-                'name' => 'HP ProBook 450 G7',
-                'sku' => 'HP-PB450G7',
-                // 'description' => 'Laptop HP Intel Core i7, 8GB RAM',
-                'price' => 350000,
-                // 'selling_price' => 480000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 3,
-                // 'unit' => 'PIECE',
-                // 'category' => 'laptops',
-            ],
-            [
-                'name' => 'Lenovo ThinkPad T470',
-                'sku' => 'LEN-T470',
-                // 'description' => 'ThinkPad professionnel robuste',
-                'price' => 280000,
-                // 'selling_price' => 380000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 4,
-                // 'unit' => 'PIECE',
-                // 'category' => 'laptops',
-            ],
+        foreach ($compagnies as $compagnie) {
+            // Chaque compagnie reçoit 12 produits aléatoires du catalogue
+            // withoutGlobalScopes non nécessaire ici car on crée sans auth —
+            // le hook creating du BelongsToCompagnie est désactivé si auth()->check() = false,
+            // donc on passe compagnie_id explicitement
+            $selection = collect($this->catalogue)->shuffle()->take(12);
 
-            // Smartphones
-            [
-                'name' => 'iPhone 15 Pro 256GB',
-                'sku' => 'IPH15-PRO-256',
-                // 'description' => 'iPhone 15 Pro Titanium 256GB',
-                'price' => 650000,
-                // 'selling_price' => 850000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 2,
-                // 'unit' => 'PIECE',
-                // 'category' => 'smartphones',
-            ],
-            [
-                'name' => 'Samsung Galaxy S24 Ultra',
-                'sku' => 'SAM-S24U-512',
-                // 'description' => 'Galaxy S24 Ultra 512GB',
-                'price' => 550000,
-                // 'selling_price' => 720000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 3,
-                // 'unit' => 'PIECE',
-                // 'category' => 'smartphones',
-            ],
-            [
-                'name' => 'Xiaomi Redmi Note 13 Pro',
-                'sku' => 'XIA-RN13PRO',
-                // 'description' => 'Redmi Note 13 Pro 256GB',
-                'price' => 120000,
-                // 'selling_price' => 165000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 10,
-                // 'unit' => 'PIECE',
-                // 'category' => 'smartphones',
-            ],
-            [
-                'name' => 'POCO X6 Pro',
-                'sku' => 'POCO-X6PRO',
-                // 'description' => 'POCO X6 Pro 512GB',
-                'price' => 180000,
-                // 'selling_price' => 240000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 8,
-                // 'unit' => 'PIECE',
-                // 'category' => 'smartphones',
-            ],
-            [
-                'name' => 'Infinix Hot 40 Pro',
-                'sku' => 'INF-HOT40PRO',
-                // 'description' => 'Infinix Hot 40 Pro 256GB',
-                'price' => 95000,
-                // 'selling_price' => 135000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 15,
-                // 'unit' => 'PIECE',
-                // 'category' => 'smartphones',
-            ],
-
-            // Tablettes
-            [
-                'name' => 'iPad Air M2 256GB',
-                'sku' => 'IPAD-AIR-M2',
-                // 'description' => 'iPad Air avec puce M2',
-                'price' => 420000,
-                // 'selling_price' => 550000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 3,
-                // 'unit' => 'PIECE',
-                // 'category' => 'tablets',
-            ],
-            [
-                'name' => 'Samsung Galaxy Tab S9',
-                'sku' => 'SAM-TABS9',
-                // 'description' => 'Galaxy Tab S9 128GB',
-                'price' => 280000,
-                // 'selling_price' => 380000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 5,
-                // 'unit' => 'PIECE',
-                // 'category' => 'tablets',
-            ],
-
-            // Composants PC
-            [
-                'name' => 'SSD Samsung 1TB NVMe',
-                'sku' => 'SSD-SAM-1TB',
-                // 'description' => 'SSD M.2 NVMe 1To haute vitesse',
-                'price' => 45000,
-                // 'selling_price' => 65000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 20,
-                // 'unit' => 'PIECE',
-                // 'category' => 'components',
-            ],
-            [
-                'name' => 'RAM DDR4 16GB',
-                'sku' => 'RAM-DDR4-16',
-                // 'description' => 'Barrette mémoire DDR4 16GB 3200MHz',
-                'price' => 28000,
-                // 'selling_price' => 42000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 25,
-                // 'unit' => 'PIECE',
-                // 'category' => 'components',
-            ],
-            [
-                'name' => 'Disque Dur 2TB Seagate',
-                'sku' => 'HDD-SEA-2TB',
-                // 'description' => 'HDD interne 2To 7200RPM',
-                'price' => 35000,
-                // 'selling_price' => 50000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 15,
-                // 'unit' => 'PIECE',
-                // 'category' => 'components',
-            ],
-
-            // Périphériques
-            [
-                'name' => 'Écran Dell 24" Full HD',
-                'sku' => 'MON-DELL-24',
-                // 'description' => 'Moniteur LED 24 pouces 1920x1080',
-                'price' => 85000,
-                // 'selling_price' => 125000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 8,
-                // 'unit' => 'PIECE',
-                // 'category' => 'peripherals',
-            ],
-            [
-                'name' => 'Clavier Logitech MX Keys',
-                'sku' => 'KEY-LOG-MX',
-                // 'description' => 'Clavier sans fil rétroéclairé',
-                'price' => 42000,
-                // 'selling_price' => 60000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 12,
-                // 'unit' => 'PIECE',
-                // 'category' => 'peripherals',
-            ],
-            [
-                'name' => 'Souris Logitech MX Master 3',
-                'sku' => 'MOU-LOG-MX3',
-                // 'description' => 'Souris ergonomique sans fil',
-                'price' => 35000,
-                // 'selling_price' => 52000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 15,
-                // 'unit' => 'PIECE',
-                // 'category' => 'peripherals',
-            ],
-
-            // Accessoires
-            [
-                'name' => 'Chargeur USB-C 65W',
-                'sku' => 'CHG-USBC-65',
-                // 'description' => 'Chargeur rapide USB-C 65W universel',
-                'price' => 8000,
-                // 'selling_price' => 15000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 50,
-                // 'unit' => 'PIECE',
-                // 'category' => 'accessories',
-            ],
-            [
-                'name' => 'Câble USB-C vers USB-C 2m',
-                'sku' => 'CAB-USBC-2M',
-                // 'description' => 'Câble charge rapide 100W',
-                'price' => 2500,
-                // 'selling_price' => 5000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 100,
-                // 'unit' => 'PIECE',
-                // 'category' => 'accessories',
-            ],
-            [
-                'name' => 'Housse Laptop 15.6"',
-                'sku' => 'HOU-LAP-156',
-                // 'description' => 'Housse protection PC portable',
-                'price' => 5000,
-                // 'selling_price' => 12000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 30,
-                // 'unit' => 'PIECE',
-                // 'category' => 'accessories',
-            ],
-
-            // Audio
-            [
-                'name' => 'AirPods Pro 2',
-                'sku' => 'AIR-PRO2',
-                // 'description' => 'Écouteurs Apple avec réduction de bruit',
-                'price' => 120000,
-                // 'selling_price' => 165000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 10,
-                // 'unit' => 'PIECE',
-                // 'category' => 'audio',
-            ],
-            [
-                'name' => 'Casque Sony WH-1000XM5',
-                'sku' => 'HEAD-SONY-XM5',
-                // 'description' => 'Casque Bluetooth ANC premium',
-                'price' => 145000,
-                // 'selling_price' => 195000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 6,
-                // 'unit' => 'PIECE',
-                // 'category' => 'audio',
-            ],
-
-            // Réseau
-            [
-                'name' => 'Routeur TP-Link AX3000',
-                'sku' => 'ROU-TPL-AX3000',
-                // 'description' => 'Routeur WiFi 6 double bande',
-                'price' => 65000,
-                // 'selling_price' => 95000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 8,
-                // 'unit' => 'PIECE',
-                // 'category' => 'network',
-            ],
-            [
-                'name' => 'Switch Gigabit 8 Ports',
-                'sku' => 'SWI-GIG-8P',
-                // 'description' => 'Switch Ethernet Gigabit 8 ports',
-                'price' => 18000,
-                // 'selling_price' => 28000,
-                // 'tax_rate' => 18,
-                // 'alert_quantity' => 12,
-                // 'unit' => 'PIECE',
-                // 'category' => 'network',
-            ],
-        ];
-
-        // Créer les produits pour chaque entreprise
-        foreach ($companies as $company) {
-            // Chaque entreprise reçoit 70% des produits (sélection aléatoire)
-            $companyProducts = collect($productsData)->random(min(22, count($productsData)));
-
-            foreach ($companyProducts as $productData) {
-                // // $category = $categories[$productData['category']] ?? null;
-
-                Product::create([
-                    'name' => $productData['name'],
-                    'sku' => $productData['sku'] . '-' . strtoupper(substr($company->name, 5, 15)),
-                    // // 'description' => $productData['description'],
-                    'price' => $productData['price'],
-                    // // 'selling_price' => $productData['selling_price'],
-                    // // 'tax_rate' => $productData['tax_rate'],
-                    // // 'alert_quantity' => $productData['alert_quantity'],
-                    // // 'unit' => $productData['unit'],
-                    // 'is_active' => true,
-                    // 'track_stock' => true,
-                    'compagnie_id' => $company->id,
-                    // // 'category_id' => $category?->id,
+            foreach ($selection as $data) {
+                // Le SKU doit être unique globalement — on suffixe par l'id compagnie
+                Product::withoutGlobalScopes()->create([
+                    'compagnie_id' => $compagnie->id,
+                    'name'         => $data['name'],
+                    'sku'          => $data['sku'] . '-C' . $compagnie->id,
+                    'price'        => $data['price'],
                 ]);
             }
 
-            $this->command->info("   ✓ Produits créés pour : {$company->name}");
+            $this->command->info("   ✓ {$compagnie->name} → 12 produits créés");
         }
     }
 }

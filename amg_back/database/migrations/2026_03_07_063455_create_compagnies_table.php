@@ -18,6 +18,7 @@ return new class extends Migration {
             $table->string('phone')->nullable();
             $table->string('subscription_status')->default('active');
             $table->timestamp('subscription_expires_at')->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

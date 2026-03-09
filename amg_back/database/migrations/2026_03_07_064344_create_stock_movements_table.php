@@ -20,6 +20,7 @@ return new class extends Migration
             $table->enum("type",["in","out","adjustment","transfert"]);
             $table->integer("quantity");
             $table->string("reason")->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

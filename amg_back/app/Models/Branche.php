@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use App\Models\Scopes\CompagnieScope;
+use App\Models\Traits\BelongsToCompagnie;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Branche extends Model
 {
+    use SoftDeletes,BelongsToCompagnie;
     protected $table = "branches";
     protected $fillable = [
         "name",
@@ -34,13 +37,4 @@ class Branche extends Model
         return $this->hasMany(Stock::class);
     }
 
-    protected static function booted()
-    {
-        static::addGlobalScope(new CompagnieScope);
-        static::creating(function ($model) {
-            if (auth()->check()) {
-                $model->compagnie_id = auth()->user()->compagnie_id;
-            }
-        });
-    }
 }
