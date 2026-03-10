@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BrancheController;
+use App\Http\Controllers\CompagnieController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\StockMovementController;
@@ -23,7 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Branches — CRUD (admin) / lecture filtrée (manager, operator)
     Route::apiResource('branche', BrancheController::class);
 
-        // Users de la compagnie — gestion par l'admin
+    // Users de la compagnie — gestion par l'admin
     // GET    /api/user-compagnie         → liste les users de la compagnie
     // POST   /api/user-compagnie         → inviter un user (manager ou operator)
     // GET    /api/user-compagnie/{id}    → détail d'un user
@@ -31,6 +32,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // DELETE /api/user-compagnie/{id}    → retirer un user
     Route::apiResource('user-compagnie', UserController::class);
 
+
+    // Compagnie — pas d'ID dans l'URL, on résout depuis auth()
+    // GET  /api/compagnie  → infos de sa compagnie (tous les rôles)
+    // PUT  /api/compagnie  → modifier sa compagnie (admin uniquement)
+    Route::get('compagnie', [CompagnieController::class, 'show']);
+    Route::put('compagnie', [CompagnieController::class, 'update']);
 
     // Produits
     Route::apiResource('product', ProductController::class);
@@ -40,10 +47,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // POST /api/mouvement              → créer in / out / adjustment
     // GET  /api/mouvement/{id}         → détail d'un mouvement
     // POST /api/mouvement/transfert    → transfert inter-branches
-    Route::get('mouvement',                [StockMovementController::class, 'index']);
-    Route::post('mouvement',               [StockMovementController::class, 'store']);
-    Route::post('mouvement/transfert',     [StockMovementController::class, 'transfert']);
-    Route::get('mouvement/{stockMovement}',[StockMovementController::class, 'show']);
+    Route::get('mouvement', [StockMovementController::class, 'index']);
+    Route::post('mouvement', [StockMovementController::class, 'store']);
+    Route::post('mouvement/transfert', [StockMovementController::class, 'transfert']);
+    Route::get('mouvement/{stockMovement}', [StockMovementController::class, 'show']);
 
 
 });

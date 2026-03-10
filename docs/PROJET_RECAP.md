@@ -339,6 +339,7 @@ Compagnie
 - [ ] **Alertes stock bas** : seuil configurable par produit/branche
 - [ ] **CompagnieController** : permettre à l'admin de modifier les infos de sa compagnie
 
+---
 
 ## 🔄 Mise à jour — 2026-03-08 (Seeders)
 
@@ -378,3 +379,188 @@ Compagnie
 ```bash
 php artisan migrate:fresh --seed
 ```
+
+---
+
+## 🔄 Mise à jour — 2026-03-08 (Policies produit + Handler exceptions)
+
+### Logiques ajoutées
+
+**ProductPolicy**
+- `create`, `update`, `delete` → admin uniquement (via `before()`)
+- `viewAny`, `view` → tous les rôles (tout le monde peut lire les produits de sa compagnie)
+- `authorize()` ajouté sur chaque méthode du `ProductController`
+
+**Handler d'exceptions JSON global (`bootstrap/app.php`)**
+Toutes les routes `/api/*` retournent désormais du JSON propre :
+
+| Exception | Code | Message retourné |
+|-----------|------|-----------------|
+| `AuthenticationException` | 401 | Non authentifié |
+| `AuthorizationException` | 403 | Action non autorisée |
+| `ModelNotFoundException` | 404 | `{Model}` introuvable |
+| `NotFoundHttpException` | 404 | Route introuvable |
+| `ValidationException` | 422 | Données invalides + détail des erreurs |
+| `HttpException` | variable | Message HTTP correspondant |
+
+### Bugs corrigés
+- Un opérateur pouvait créer/modifier/supprimer des produits — corrigé
+
+### Fichiers créés / modifiés
+| Fichier | Action |
+|---------|--------|
+| `app/Policies/ProductPolicy.php` | ✅ Créé |
+| `app/Http/Controllers/ProductController.php` | ✅ Mis à jour (authorize sur chaque action) |
+| `bootstrap/app.php` | ✅ Mis à jour (handler exceptions JSON) |
+
+---
+
+## 🔄 Mise à jour — 2026-03-08 (StockMovementPolicy)
+
+### Logique ajoutée
+
+**StockMovementPolicy**
+
+| Méthode | Admin | Manager | Operator |
+|---------|-------|---------|----------|
+| `viewAny` | ✅ | ✅ | ✅ |
+| `view` | ✅ si branche accessible | ✅ | ✅ |
+| `create` | ✅ | ✅ | ✅ |
+| `transfert` | ✅ | ✅ | ❌ |
+
+- `authorize()` appliqué sur chaque méthode du `StockMovementController`
+- La méthode `transfert` est non-standard → enregistrement explicite via `Gate::policy()` dans `AppServiceProvider`
+- Toutes les policies sont maintenant enregistrées explicitement dans `AppServiceProvider` (plus fiable que la découverte automatique)
+
+### Fichiers créés / modifiés
+| Fichier | Action |
+|---------|--------|
+| `app/Policies/StockMovementPolicy.php` | ✅ Créé |
+| `app/Http/Controllers/StockMovementController.php` | ✅ Mis à jour (`authorize()` sur chaque action) |
+| `app/Providers/AppServiceProvider.php` | ✅ Mis à jour (toutes les policies enregistrées explicitement) |
+
+### État global des policies
+| Modèle | Policy | Enregistrée |
+|--------|--------|-------------|
+| `Branche` | `BranchePolicy` | ✅ |
+| `Product` | `ProductPolicy` | ✅ |
+| `StockMovement` | `StockMovementPolicy` | ✅ |
+| `User` | `UserPolicy` | ✅ |
+
+---
+
+## 🔄 Mise à jour — 2026-03-08 (CompagnieController)
+
+### Logiques ajoutées
+
+**Gestion de la compagnie**
+- `GET /api/compagnie` → infos de la compagnie + stats (branches, users, produits) — tous les rôles
+- `PUT /api/compagnie` → modifier name, email, phone — admin uniquement, le slug est mis à jour automatiquement si le nom change
+
+**Décision d'architecture : pas d'ID dans l'URL**
+- Chaque user ne peut voir/modifier que SA compagnie
+- On résout la compagnie depuis `auth()->user()->compagnie_id` directement
+- Impossible d'accéder à une autre compagnie en changeant l'ID dans l'URL
+
+**CompagniePolicy**
+- `view` → tout utilisateur de la compagnie
+- `update` → admin uniquement + vérification `compagnie_id`
+
+**Pas de create/destroy via API**
+- `create` → passe par `/register` uniquement
+- `destroy` → non exposé (trop risqué sans workflow de désinscription)
+
+### Fichiers créés / modifiés
+| Fichier | Action |
+|---------|--------|
+| `app/Policies/CompagniePolicy.php` | ✅ Créé |
+| `app/Http/Requests/UpdateCompagnieRequest.php` | ✅ Créé |
+| `app/Http/Resources/CompagnieResource.php` | ✅ Créé |
+| `app/Http/Controllers/CompagnieController.php` | ✅ Créé |
+| `app/Providers/AppServiceProvider.php` | ✅ Mis à jour (CompagniePolicy ajoutée) |
+| `routes/api.php` | ✅ Mis à jour (GET/PUT compagnie) |
+
+### Tableau récapitulatif des routes API complètes
+| Méthode | Route | Rôle minimum | Description |
+|---------|-------|-------------|-------------|
+| POST | `/api/register` | — | Créer compte + compagnie |
+| POST | `/api/login` | — | Connexion |
+| GET | `/api/user` | tous | User connecté |
+| GET | `/api/compagnie` | tous | Infos compagnie |
+| PUT | `/api/compagnie` | admin | Modifier compagnie |
+| GET | `/api/branche` | tous | Lister branches (filtrées) |
+| POST | `/api/branche` | admin | Créer branche |
+| GET | `/api/branche/{id}` | tous | Voir branche |
+| PUT | `/api/branche/{id}` | admin | Modifier branche |
+| DELETE | `/api/branche/{id}` | admin | Supprimer branche |
+| GET | `/api/user-compagnie` | admin | Lister users |
+| POST | `/api/user-compagnie` | admin | Inviter user |
+| GET | `/api/user-compagnie/{id}` | admin | Voir user |
+| PUT | `/api/user-compagnie/{id}` | admin | Modifier user |
+| DELETE | `/api/user-compagnie/{id}` | admin | Retirer user |
+| GET | `/api/product` | tous | Lister produits |
+| POST | `/api/product` | admin | Créer produit |
+| GET | `/api/product/{id}` | tous | Voir produit |
+| PUT | `/api/product/{id}` | admin | Modifier produit |
+| DELETE | `/api/product/{id}` | admin | Archiver produit |
+| GET | `/api/mouvement` | tous | Historique mouvements |
+| POST | `/api/mouvement` | tous | Créer mouvement |
+| GET | `/api/mouvement/{id}` | tous | Voir mouvement |
+| POST | `/api/mouvement/transfert` | admin/manager | Transfert inter-branches |
+
+---
+
+## 🔄 Mise à jour — 2026-03-08 (Fix eager loading scopes)
+
+### Bug corrigé — Mouvements filtrés silencieusement
+
+**Symptômes observés**
+- Admin → 13 mouvements retournés (tous de la même branche) au lieu de 42
+- Operator → count = 12 mais JSON complètement vide
+
+**Cause racine**
+Le `with(['stock.product', 'stock.branche'])` appliquait les Global Scopes pendant le eager load :
+- `Stock` → `SoftDeletes` ajoutait `deleted_at is null`
+- `Branche` → `CompagnieScope` ajoutait `WHERE compagnie_id = X`
+- `Product` → `CompagnieScope` ajoutait `WHERE compagnie_id = X`
+
+Résultat : certaines relations revenaient `null` → la `StockMovementResource` plantait silencieusement → collection tronquée ou vide.
+
+**Fix appliqué**
+- Méthode privée `eagerLoad()` centralisée dans le controller
+- `withoutGlobalScopes()` sur `stock`, `product`, `branche` dans tous les eager loads
+- `withoutGlobalScopes()` aussi sur les `whereHas` pour cohérence
+- Le périmètre de sécurité reste garanti par le `whereIn('branche_id', $brancheIds)` — les scopes ne sont pas nécessaires en plus
+
+**Fichier modifié**
+| Fichier | Action |
+|---------|--------|
+| `app/Http/Controllers/StockMovementController.php` | ✅ Fix complet — méthode `eagerLoad()` + `withoutGlobalScopes()` partout |
+
+---
+
+## 🔄 Mise à jour — 2026-03-08 (Fix interface mouvement)
+
+### Bug corrigé — store mouvement réclamait stock_id
+
+**Avant** : `POST /api/mouvement` attendait `stock_id` — l'utilisateur devait connaître l'ID interne du stock.
+
+**Après** : `POST /api/mouvement` attend `product_id` + `branche_id` — le controller résout le stock lui-même. Même logique que le transfert.
+
+**Body attendu désormais**
+```json
+{
+  "product_id": 1,
+  "branche_id": 2,
+  "type": "in",
+  "quantity": 10,
+  "reason": "Réapprovisionnement"
+}
+```
+
+**Bonus** : si le produit n'a pas encore de stock dans cette branche, il est créé automatiquement à 0 avant d'appliquer le mouvement.
+
+| Fichier | Action |
+|---------|--------|
+| `app/Http/Requests/StoreMovementRequest.php` | ✅ `stock_id` → `product_id` + `branche_id` |
+| `app/Http/Controllers/StockMovementController.php` | ✅ `store()` mis à jour |

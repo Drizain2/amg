@@ -34,6 +34,7 @@ class StockMovementObserver
 
             default            => null,
         };
+        
     }
 
     /**

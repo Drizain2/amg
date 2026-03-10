@@ -132,6 +132,8 @@ class StockMovementController extends Controller
         $brancheSource = Branche::withoutGlobalScopes()->findOrFail($request->branche_source_id);
         $brancheDest   = Branche::withoutGlobalScopes()->findOrFail($request->branche_dest_id);
 
+
+        
         if (
             $brancheSource->compagnie_id !== $user->compagnie_id ||
             $brancheDest->compagnie_id   !== $user->compagnie_id
@@ -214,9 +216,7 @@ class StockMovementController extends Controller
     public function show(StockMovement $stockMovement)
     {
         $stockMovement->load($this->eagerLoad());
-
         $this->authorize('view', $stockMovement);
-
         return new StockMovementResource($stockMovement);
     }
 }

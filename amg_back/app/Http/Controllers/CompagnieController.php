@@ -2,48 +2,53 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateCompagnieRequest;
+use App\Http\Resources\CompagnieResource;
 use App\Models\Compagnie;
-use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class CompagnieController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Voir les infos de sa propre compagnie.
+     * Accessible à tous les rôles.
+     *
+     * On n'utilise pas le route model binding standard ici —
+     * chaque user ne peut voir que SA compagnie, donc on la
+     * résout directement depuis auth() sans passer d'ID dans l'URL.
+     * Plus simple et plus sûr : impossible d'accéder à une autre compagnie.
      */
-    public function index()
+    public function show()
     {
-        //
+        $compagnie = Compagnie::withCount(['branches', 'users', 'products'])
+                              ->findOrFail(auth()->user()->compagnie_id);
+
+        $this->authorize('view', $compagnie);
+
+        return new CompagnieResource($compagnie);
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Modifier les infos de sa compagnie — admin uniquement.
+     * Même logique : on résout la compagnie depuis auth(), pas depuis l'URL.
      */
-    public function store(Request $request)
+    public function update(UpdateCompagnieRequest $request)
     {
-        //
-    }
+        $compagnie = Compagnie::findOrFail(auth()->user()->compagnie_id);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Compagnie $compagnie)
-    {
-        //
-    }
+        $this->authorize('update', $compagnie);
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Compagnie $compagnie)
-    {
-        //
-    }
+        $data = $request->validated();
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Compagnie $compagnie)
-    {
-        //
+        // Si le nom change, on met à jour le slug aussi
+        if (isset($data['name'])) {
+            $data['slug'] = Str::slug($data['name']);
+        }
+
+        $compagnie->update($data);
+
+        return new CompagnieResource(
+            $compagnie->loadCount(['branches', 'users', 'products'])
+        );
     }
 }
